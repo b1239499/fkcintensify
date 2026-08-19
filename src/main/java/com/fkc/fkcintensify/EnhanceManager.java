@@ -33,6 +33,9 @@ public class EnhanceManager {
         loadCategories();
     }
 
+    /**
+     * 從 config.yml 讀取所有分類設定。可以在 /fkci reload 時重新呼叫。
+     */
     public void loadCategories() {
         categories.clear();
         var section = plugin.getConfig().getConfigurationSection("intensify.categories");
@@ -51,6 +54,9 @@ public class EnhanceManager {
         }
     }
 
+    /**
+     * 找出這個物品符合哪個強化分類；找不到回傳 null（代表這個物品不能強化）。
+     */
     public ToolCategory resolveCategory(ItemStack item) {
         for (ToolCategory category : categories) {
             if (category.matches(item)) {
@@ -90,6 +96,10 @@ public class EnhanceManager {
         return plugin.getConfig().getInt("intensify.stones-per-attempt", 1);
     }
 
+    /**
+     * 取得「從目前等級升到下一級」的成功機率。
+     * 已經到最高等級的話回傳 0（不能再升）。
+     */
     public double getSuccessRate(int currentLevel) {
         if (currentLevel >= getMaxLevel()) {
             return 0;
@@ -101,12 +111,17 @@ public class EnhanceManager {
         return section.getDouble(String.valueOf(currentLevel), 0);
     }
 
+    /**
+     * 把指定等級的效果實際套用到物品上（附魔或屬性），並更新等級標記跟 lore 顯示。
+     * 這個方法會直接修改傳入的 ItemStack。
+     */
     public void applyLevel(ItemStack item, ToolCategory category, int level) {
         ItemMeta meta = item.getItemMeta();
         if (meta == null) {
             return;
         }
 
+        // 寫入等級標記
         meta.getPersistentDataContainer().set(levelKey, PersistentDataType.INTEGER, level);
 
         if (category.getKind() == ToolCategory.Kind.ENCHANT) {
@@ -115,6 +130,7 @@ public class EnhanceManager {
             applyAttributeLevel(meta, category, level);
         }
 
+        // 更新 lore：先移除舊的強化等級那一行，再補上新的
         updateLoreLevelLine(meta, level);
 
         item.setItemMeta(meta);
@@ -130,6 +146,7 @@ public class EnhanceManager {
         if (level <= 0) {
             meta.removeEnchant(enchantment);
         } else {
+            // addUnsafeEnchantment 可以無視原版等級上限，符合 +1~+20 這種自訂範圍需求
             meta.addEnchant(enchantment, level, true);
         }
     }
@@ -142,9 +159,14 @@ public class EnhanceManager {
             return;
         }
 
+        // 用固定的 NamespacedKey 當作這個強化 modifier 的識別碼，
+        // 這樣之後升級/降級時才能準確找到、移除舊的 modifier，換上新的
         NamespacedKey modifierKey = new NamespacedKey(plugin, "fkc_intensify_" + category.getName().toLowerCase(Locale.ROOT));
         EquipmentSlotGroup slotGroup = resolveSlotGroup(category.getSlotGroupName());
 
+        // removeAttributeModifier 需要傳入完整的 AttributeModifier 物件（用 key 比對是否相符），
+        // 不能只傳 NamespacedKey，所以先建一個「佔位用」的 modifier（amount 數值不重要，
+        // 移除時只比對 key 是否一致）
         AttributeModifier placeholderForRemoval = new AttributeModifier(
                 modifierKey, 0, AttributeModifier.Operation.ADD_NUMBER, slotGroup
         );
@@ -177,6 +199,10 @@ public class EnhanceManager {
         };
     }
 
+    /**
+     * 把 config.yml 裡用的舊式屬性命名（例如 GENERIC_ATTACK_DAMAGE）
+     * 轉換成現代原版屬性的 NamespacedKey 字串（例如 generic.attack_damage）。
+     */
     private String toVanillaAttributeKey(String legacyName) {
         String lower = legacyName.toLowerCase(Locale.ROOT);
         int firstUnderscore = lower.indexOf('_');
@@ -190,6 +216,7 @@ public class EnhanceManager {
         List<String> lore = meta.hasLore() && meta.getLore() != null ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
         String prefix = ChatColor.GOLD + "強化等級: " + ChatColor.YELLOW + "+";
 
+        // 移除舊的強化等級那一行（用前綴比對）
         lore.removeIf(line -> ChatColor.stripColor(line) != null
                 && ChatColor.stripColor(line).startsWith(ChatColor.stripColor(prefix)));
 
