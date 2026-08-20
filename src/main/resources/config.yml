@@ -1,0 +1,269 @@
+# ============================================================
+# fkcintensify 設定檔
+# ============================================================
+
+# ------------------------------------------------------------
+# 強化石外觀（掉落系統用，也是強化系統消耗的主要素材）
+# ------------------------------------------------------------
+item:
+  material: NETHER_STAR
+  display-name: '&d&l強化石'
+  lore:
+    - '&7蘊含著神秘的強化力量'
+    - '&7可用於強化你的裝備'
+
+# 是否開啟區塊限制（同一區塊在冷卻時間內只會掉落一次，防止農場洗爆）
+chunk-limit:
+  enabled: true
+  cooldown-seconds: 1800   # 30分鐘
+
+# ------------------------------------------------------------
+# 破壞方塊掉落機率（0.0=不掉，1.0=100%必掉）
+# 用絲綢挖礦的方塊一律不觸發（避免放置又挖掘無限刷）
+# ------------------------------------------------------------
+block:
+  enabled: true
+  drops:
+    # 普通石頭層礦石
+    COAL_ORE: 0.005
+    IRON_ORE: 0.01
+    GOLD_ORE: 0.01
+    DIAMOND_ORE: 0.05
+    EMERALD_ORE: 0.05
+    ANCIENT_DEBRIS: 0.1
+    # 深板岩層礦石（材質名稱跟普通版不同，要分開列，不會自動套用同一個機率）
+    DEEPSLATE_COAL_ORE: 0.005
+    DEEPSLATE_IRON_ORE: 0.01
+    DEEPSLATE_GOLD_ORE: 0.01
+    DEEPSLATE_DIAMOND_ORE: 0.05
+    DEEPSLATE_EMERALD_ORE: 0.05
+
+# ------------------------------------------------------------
+# 釣魚掉落機率
+# ------------------------------------------------------------
+fish:
+  enabled: true
+  drops:
+    COD: 0.01
+    SALMON: 0.01
+    PUFFERFISH: 0.02
+    TROPICAL_FISH: 0.02
+
+# ------------------------------------------------------------
+# 擊殺怪物掉落機率
+# ------------------------------------------------------------
+kill:
+  enabled: true
+  world-whitelist: ALL
+  default-rate: 0.01
+  overrides:
+    ZOMBIE: 0.1
+    SKELETON: 0.1
+    ENDER_DRAGON: 1.0
+    WITHER: 1.0
+
+
+# ============================================================
+# 強化系統設定
+# ============================================================
+intensify:
+  max-level: 20              # 最高等級 +20
+  stones-per-attempt: 1      # 每次強化消耗幾個強化石
+
+  # 達到這個等級（含）以上，強化失敗時會「降階」
+  # 低於這個等級的失敗，只是單純失敗，不會有任何懲罰
+  downgrade-start-level: 10
+
+  # 達到這個等級（含）以上，強化失敗時「有機率」道具會直接消失
+  # 這個等級也一定會降階（降階跟消失是各自獨立判定的懲罰）
+  destroy-start-level: 16
+
+  # 在可能損毀的等級區間，失敗時觸發「道具消失」的機率
+  # （跟上面 success-rates 的「升級成功率」是不同的兩件事）
+  destroy-chance-on-fail: 0.3
+
+  # 每一級「升到下一級」的成功機率，key 是目前等級，value 是成功率
+  # 例如 "1": 1.0 代表從 +1 升到 +2 保證成功
+  # "0" 這個 key 很重要：裝備一開始是 +0（還沒強化過），
+  # 第一次強化(從+0升到+1)用的就是這個機率，漏掉會導致第一次強化永遠失敗！
+  success-rates:
+    "0": 1.0
+    "1": 1.0
+    "2": 0.95
+    "3": 0.9
+    "4": 0.85
+    "5": 0.8
+    "6": 0.75
+    "7": 0.7
+    "8": 0.65
+    "9": 0.6
+    "10": 0.55
+    "11": 0.5
+    "12": 0.45
+    "13": 0.4
+    "14": 0.35
+    "15": 0.3
+    "16": 0.25
+    "17": 0.2
+    "18": 0.15
+    "19": 0.1
+    "20": 0.05
+
+  # ----------------------------------------------------------
+  # 工具分類：決定「哪種裝備」對應「強化什麼效果」
+  #
+  # 每個分類底下用 stages 設定「等級區間」，每個區間可以設定：
+  #   from / to : 這個區間涵蓋的等級範圍（含頭尾）
+  #   effects   : 這個區間要套用的效果清單，可以放多個
+  #
+  # 換到下一個區間時，前一個區間的效果會「定格」保留在該區間的最大值，
+  # 新區間的效果另外疊加上去，兩者同時存在。
+  #
+  # effects 每一項：
+  #   kind: ENCHANT   -> 附魔效果，local等級直接當附魔等級
+  #   kind: ATTRIBUTE -> 屬性效果，local等級 × value-per-level 當作加成數值
+  #
+  # match-tag      : 用 Bukkit 內建的物品標籤比對整類工具（推薦，涵蓋所有材質等級）
+  # match-material : 只比對單一材質（例如弩、弓這種沒有多種材質的物品）
+  # ----------------------------------------------------------
+  categories:
+    PICKAXE:
+      enabled: true
+      match-tag: pickaxes
+      stages:
+        - from: 1
+          to: 20
+          effects:
+            - kind: ENCHANT
+              enchant: EFFICIENCY
+
+    AXE:
+      enabled: true
+      match-tag: axes
+      stages:
+        - from: 1
+          to: 20
+          effects:
+            - kind: ENCHANT
+              enchant: EFFICIENCY
+
+    SHOVEL:
+      enabled: true
+      match-tag: shovels
+      stages:
+        - from: 1
+          to: 20
+          effects:
+            - kind: ENCHANT
+              enchant: EFFICIENCY
+
+    # SWORD 示範「不同等級區間對應不同效果」：
+    #   +1  ~ +10：只加攻擊力
+    #   +11 ~ +20：攻擊力定格在+10時的數值(不再增加)，額外疊加攻速加成
+    # 想要更多段、或想同一段同時掛好幾種效果，都直接照這個格式加下去即可
+    SWORD:
+      enabled: true
+      match-tag: swords
+      stages:
+        - from: 1
+          to: 10
+          effects:
+            - kind: ATTRIBUTE
+              attribute: GENERIC_ATTACK_DAMAGE
+              value-per-level: 0.5
+              slot-group: MAINHAND
+        - from: 11
+          to: 20
+          effects:
+            - kind: ATTRIBUTE
+              attribute: GENERIC_ATTACK_SPEED
+              value-per-level: 0.1
+              slot-group: MAINHAND
+
+    CROSSBOW:
+      enabled: true
+      match-material: CROSSBOW
+      stages:
+        - from: 1
+          to: 20
+          effects:
+            - kind: ENCHANT
+              enchant: QUICK_CHARGE
+
+    BOW:
+      enabled: true
+      match-material: BOW
+      stages:
+        - from: 1
+          to: 20
+          effects:
+            - kind: ATTRIBUTE
+              attribute: GENERIC_ATTACK_DAMAGE
+              value-per-level: 0.3
+              slot-group: MAINHAND
+
+    HELMET:
+      enabled: false
+      match-tag: head_armor
+      stages:
+        - from: 1
+          to: 20
+          effects:
+            - kind: ATTRIBUTE
+              attribute: GENERIC_MAX_HEALTH
+              value-per-level: 1.0
+              slot-group: HEAD
+
+    CHESTPLATE:
+      enabled: true
+      match-tag: chest_armor
+      stages:
+        - from: 1
+          to: 20
+          effects:
+            - kind: ATTRIBUTE
+              attribute: GENERIC_ARMOR
+              value-per-level: 0.5
+              slot-group: CHEST
+
+    LEGGINGS:
+      enabled: true
+      match-tag: leg_armor
+      stages:
+        - from: 1
+          to: 20
+          effects:
+            - kind: ATTRIBUTE
+              attribute: GENERIC_ARMOR
+              value-per-level: 0.5
+              slot-group: LEGS
+
+    BOOTS:
+      enabled: true
+      match-tag: foot_armor
+      stages:
+        - from: 1
+          to: 20
+          effects:
+            - kind: ATTRIBUTE
+              attribute: GENERIC_MOVEMENT_SPEED
+              value-per-level: 0.005
+              slot-group: FEET
+
+  # ----------------------------------------------------------
+  # 保護道具：防止降階石、防止破壞石
+  # ----------------------------------------------------------
+  protection:
+    prevent-downgrade-item:
+      material: EMERALD
+      display-name: '&b防止降階石'
+      lore:
+        - '&7強化失敗時可以防止等級下降'
+        - '&c無法防止道具消失'
+
+    prevent-destroy-item:
+      material: DIAMOND
+      display-name: '&b防止破壞石'
+      lore:
+        - '&7強化失敗時可以防止道具消失'
+        - '&c無法防止等級下降'
